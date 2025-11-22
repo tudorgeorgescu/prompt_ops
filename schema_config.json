@@ -1,0 +1,6 @@
+{
+  "customer_id": "Unique internal ID for the customer (e.g., C001).",
+  "customer_name": "The full name of the customer as registered in CRM.",
+  "recent_purchases": "A comma-separated list of products bought in the last 30 days.",
+  "support_ticket_text": "The raw unstructured text of the customer's support ticket/complaint."
+}
