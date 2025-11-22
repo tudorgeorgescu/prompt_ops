@@ -102,7 +102,7 @@ with tab1:
         selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
     # Editor Form
     with col_edit:
-st.subheader("Edit Configuration")
+        st.subheader("Edit Configuration")
         with st.form("edit_form"):
             if selected_data:
                 f_id = st.text_input("ID", value=selected_data['id'], disabled=True)
