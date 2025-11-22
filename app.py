@@ -124,8 +124,10 @@ with tab1:
     # Left: List of Prompts
     with col_list:
         st.subheader("Select Prompt")
-        names = [p['name'] for p in prompts_list] + ["+ Create New"]
-        selected_name = st.radio("Library", names, label_visibility="collapsed")
+        options = [p['name'] for p in prompts_list] + ["+ Create New"]
+
+        selected_name = st.segmented_control("Library", options, selection_mode="single")
+        
         selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
     # Right: Editor Form
