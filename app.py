@@ -119,19 +119,15 @@ with tab1:
 
     st.divider()
 
-    col_list, col_edit = st.columns([1, 2])
-    
-    # Left: List of Prompts
-    with col_list:
-        st.subheader("Select Prompt")
-        options = [p['name'] for p in prompts_list] + ["+ Create New"]
+    st.subheader("Select Prompt")
+    options = [p['name'] for p in prompts_list] + ["+ Create New"]
 
-        selected_name = st.segmented_control("Prompts", options, selection_mode="single", label_visibility="collapsed")
+    selected_name = st.segmented_control("Prompts", options, selection_mode="single", label_visibility="collapsed")
         
-        selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
+    selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-        st.subheader("Edit Configuration")
-        with st.form("edit_form"):
+    st.subheader("Edit Configuration")
+    with st.form("edit_form"):
             if selected_data:
                 f_id = st.text_input("ID", value=selected_data['id'], disabled=True)
                 f_name = st.text_input("Name", value=selected_data['name'])
