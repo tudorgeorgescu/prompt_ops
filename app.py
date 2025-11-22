@@ -126,7 +126,7 @@ with tab1:
         st.subheader("Select Prompt")
         options = [p['name'] for p in prompts_list] + ["+ Create New"]
 
-        selected_name = st.segmented_control(options, selection_mode="single")
+        selected_name = st.segmented_control("Prompts", options, selection_mode="single", label_visibility="collapsed")
         
         selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
