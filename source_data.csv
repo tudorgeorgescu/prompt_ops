@@ -1,0 +1,4 @@
+customer_id,customer_name,recent_purchases,support_ticket_text
+C001,Alice,"Laptop, Mouse","My mouse clicker is stuck."
+C002,Bob,"Coffee Maker","How do I descale this machine?"
+C003,Charlie,"Headphones","Audio cuts out on left side."
