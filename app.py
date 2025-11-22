@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime
 import time
+import re
 
 # --- Configuration ---
 PROMPTS_FILE = 'prompts.json'
@@ -86,48 +87,70 @@ st.title("⚡ Cloud Prompt A/B Tester")
 
 df_source, prompts_list, schema_dict = load_data()
 
-# --- Sidebar (Cleaned Up) ---
+# ==========================
+# SIDEBAR
+# ==========================
 with st.sidebar:
-    st.header("Project Info")
+    st.header("Project Context")
     st.info(f"Loaded {len(df_source)} rows from `{INPUT_FILE}`")
+    
+    # --- MOVED: Parameter Reference Pane ---
+    st.divider()
+    with st.expander("📚 Available Data Parameters", expanded=False):
+        st.markdown("Use these variables in your template:")
+        
+        cols = df_source.columns.tolist()
+        doc_data = []
+        for c in cols:
+            doc_data.append({
+                "Variable": f"{{{c}}}", 
+                "Description": schema_dict.get(c, "-")
+            })
+        
+        # Display as a dataframe (cleaner in sidebar than markdown list)
+        st.dataframe(
+            pd.DataFrame(doc_data), 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "Variable": st.column_config.TextColumn("Var", width="small"),
+                "Description": st.column_config.TextColumn("Desc", width="medium"),
+            }
+        )
+    # ---------------------------------------
+
     st.divider()
     if os.path.exists(OUTPUT_FILE):
         with open(OUTPUT_FILE, "rb") as file:
             st.download_button("📥 Download Results", file, "batch_results.csv")
 
-# --- Tabs ---
+# ==========================
+# MAIN TABS
+# ==========================
 tab1, tab2 = st.tabs(["📝 Prompt Editor", "🚀 Batch Runner"])
 
-# ==========================
-# TAB 1: PROMPT EDITOR
-# ==========================
+# --- TAB 1: PROMPT EDITOR ---
 with tab1:
-    # --- NEW: Parameter Reference Pane ---
-    with st.expander("📚 Available Data Parameters (Reference)", expanded=True):
-        st.markdown("Use these variables in your template inside curly braces, e.g., `{customer_name}`.")
+    col_left, col_right = st.columns([1, 2])
+    
+    # 1. Selection (Left Column)
+    with col_left:
+        st.subheader("Select Prompt")
+        options = [p['name'] for p in prompts_list] + ["+ Create New"]
         
-        # Build a nice dataframe for display
-        cols = df_source.columns.tolist()
-        doc_data = []
-        for c in cols:
-            doc_data.append({
-                "Variable Syntax": f"{{{c}}}", # Shows as {customer_name}
-                "Description": schema_dict.get(c, "No description available.")
-            })
+        # Using segmented control as requested (requires Streamlit 1.31+)
+        selected_name = st.radio(
+            "Prompts", 
+            options, 
+            label_visibility="collapsed"
+        )
         
-        st.dataframe(pd.DataFrame(doc_data), use_container_width=True, hide_index=True)
+        selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-    st.divider()
-
-    st.subheader("Select Prompt")
-    options = [p['name'] for p in prompts_list] + ["+ Create New"]
-
-    selected_name = st.segmented_control("Prompts", options, selection_mode="single", label_visibility="collapsed")
-        
-    selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
-
-    st.subheader("Edit Configuration")
-    with st.form("edit_form"):
+    # 2. Editing (Right Column)
+    with col_right:
+        st.subheader("Edit Configuration")
+        with st.form("edit_form"):
             if selected_data:
                 f_id = st.text_input("ID", value=selected_data['id'], disabled=True)
                 f_name = st.text_input("Name", value=selected_data['name'])
@@ -142,7 +165,6 @@ with tab1:
             # Validation Preview
             if f_template:
                 st.caption("Preview of variables detected:")
-                import re
                 vars_found = re.findall(r'\{(.*?)\}', f_template)
                 valid_vars = [v for v in vars_found if v in df_source.columns]
                 invalid_vars = [v for v in vars_found if v not in df_source.columns]
@@ -168,9 +190,7 @@ with tab1:
                 st.success("Saved!")
                 st.rerun()
 
-# ==========================
-# TAB 2: BATCH RUNNER
-# ==========================
+# --- TAB 2: BATCH RUNNER ---
 with tab2:
     st.header("Execute Batch")
     
