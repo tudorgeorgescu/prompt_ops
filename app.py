@@ -99,9 +99,9 @@ df_source, prompts_list = load_data()
 with st.sidebar:
     st.header("Data Context")
     st.caption(f"Input File: `{INPUT_FILE}`")
-    st.write(f"**Rows:** {len(df_source)}")
-    st.write("**Columns:**")
-    st.code(list(df_source.columns))
+    st.write(f"**Total available variables:** {len(df_source)}")
+    for col in available_columns:
+        st.code(f"{{{col}}}")
     
     st.divider()
     if os.path.exists(OUTPUT_FILE):
