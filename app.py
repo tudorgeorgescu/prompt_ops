@@ -27,6 +27,9 @@ def load_data():
     
     return df_input, prompts_data
 
+df_source, prompts_list = load_data()
+available_columns = df_source.columns.tolist()
+
 def save_prompts(prompts_list):
     """Saves prompts to JSON"""
     with open(PROMPTS_FILE, 'w') as f:
@@ -93,7 +96,9 @@ def run_batch_job(df_input, selected_prompts_list):
 st.set_page_config(layout="wide", page_title="Cloud Prompt Ops")
 st.title("⚡ Cloud Prompt A/B Tester")
 
+# Load Data
 df_source, prompts_list = load_data()
+available_columns = df_source.columns.tolist()
 
 # --- Sidebar ---
 with st.sidebar:
