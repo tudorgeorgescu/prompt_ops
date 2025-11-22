@@ -131,10 +131,6 @@ tab1, tab2 = st.tabs(["📝 Prompt Editor", "🚀 Batch Runner"])
 
 # --- TAB 1: PROMPT EDITOR ---
 with tab1:
-    col_left, col_right = st.columns([1, 2])
-    
-    # 1. Selection (Left Column)
-    with col_left:
         st.subheader("Select Prompt")
         options = [p['name'] for p in prompts_list] + ["+ Create New"]
         
@@ -147,8 +143,6 @@ with tab1:
         
         selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-    # 2. Editing (Right Column)
-    with col_right:
         st.subheader("Edit Configuration")
         with st.form("edit_form"):
             if selected_data:
