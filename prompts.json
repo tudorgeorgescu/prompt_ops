@@ -1,0 +1,16 @@
+[
+  {
+    "id": "daily_summary_v1",
+    "name": "Daily Customer Summary",
+    "template": "Analyze the customer {customer_name}. \nHistory: {support_ticket_text}. \nPurchases: {recent_purchases}.",
+    "is_active": true,
+    "updated_at": "2023-10-27 10:00:00"
+  },
+  {
+    "id": "polite_response_v2",
+    "name": "Polite Email Generator",
+    "template": "Write a polite email to {customer_name} regarding their issue: {support_ticket_text}",
+    "is_active": false,
+    "updated_at": "2023-10-26 15:30:00"
+  }
+]
