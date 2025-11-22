@@ -126,12 +126,10 @@ with tab1:
         st.subheader("Select Prompt")
         options = [p['name'] for p in prompts_list] + ["+ Create New"]
 
-        selected_name = st.segmented_control("Library", options, selection_mode="single")
+        selected_name = st.segmented_control(options, selection_mode="single")
         
         selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-    # Right: Editor Form
-    with col_edit:
         st.subheader("Edit Configuration")
         with st.form("edit_form"):
             if selected_data:
