@@ -139,7 +139,7 @@ with tab1:
         options = [p['name'] for p in prompts_list] + ["+ Create New"]
         
         # Using segmented control as requested (requires Streamlit 1.31+)
-        selected_name = st.radio(
+        selected_name = st.segmented_control(
             "Prompts", 
             options, 
             label_visibility="collapsed"
