@@ -15,9 +15,7 @@ st.title("⚡ Cloud Prompt A/B Tester")
 
 df_source, prompts_list, schema_dict = load_data()
 
-tab1, tab2 = st.tabs(["🧠 Insight Editor", "🚀 Batch Runner"])
-
-with tab1:
+with st.sidebar:
     st.subheader("Select Insight")
     options = [p['name'] for p in prompts_list] + ["+ Create New"]
     selected_name = st.segmented_control("Insights", options, label_visibility="collapsed")
@@ -34,7 +32,9 @@ with tab1:
     raw_params = st.session_state.get(session_key, [])
     param_list = normalize_params(raw_params)
     st.session_state[session_key] = param_list
-    
+
+tab1, tab2 = st.tabs(["🧠 Insight Editor", "🚀 Batch Runner"])
+with tab1:
     render_parameters(session_key, param_list)
 
     st.subheader("Edit Configuration")
