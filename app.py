@@ -205,6 +205,10 @@ if param_list:
     # Add new parameter controls
     st.subheader("Add new parameter")
     with cols[0]:
+        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold", label_visibility="hidden")
+    with cols[1]:
+        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0, label_visibility="hidden")
+    with cols[2]:
         if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
             if new_name.strip():
                 param_list.append({"name": new_name.strip(), "value": float(new_val)})
@@ -215,10 +219,6 @@ if param_list:
                 st.rerun()
             else:
                 st.warning("Please provide a parameter name.")
-    with cols[1]:
-        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold", label_visibility="invisible")
-    with cols[2]:
-        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0, label_visibility="invisible")
 
     # -------------------------------
     # Edit Configuration (kept intact)
