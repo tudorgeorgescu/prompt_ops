@@ -7,6 +7,14 @@ from datetime import datetime
 import time
 import re
 
+
+# --- Configuration ---
+PROMPTS_FILE = 'prompts.json'
+INPUT_FILE = 'source_data.csv'
+SCHEMA_FILE = 'schema_config.json'
+OUTPUT_FILE = 'batch_results.csv'
+INPUT_FILE = 'source_data.csv'
+
 # --- Helpers ---
 def safe_float(x, default=0.0):
     try:
@@ -260,9 +268,4 @@ with tab2:
                     st.error(msg)
 
 
-# --- Configuration ---
-PROMPTS_FILE = 'prompts.json'
-INPUT_FILE = 'source_data.csv'
-SCHEMA_FILE = 'schema_config.json'
-OUTPUT_FILE = 'batch_results.csv'
 
