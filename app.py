@@ -196,18 +196,21 @@ with tab1:
 
     st.divider()
     # Add new parameter controls
-    new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold")
-    new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
-    if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
-        if new_name.strip():
-            param_list.append({"name": new_name.strip(), "value": float(new_val)})
-            # Clear input fields after add
-            st.session_state[f"{session_key}_new_name"] = ""
-            st.session_state[f"{session_key}_new_val"] = 0.0
-            st.session_state[session_key] = param_list
-            st.rerun()
-        else:
-            st.warning("Please provide a parameter name.")
+    with cols[0]:
+        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold")
+    with cols[1]:
+        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
+    with cols[2]:
+        if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
+            if new_name.strip():
+                param_list.append({"name": new_name.strip(), "value": float(new_val)})
+                # Clear input fields after add
+                st.session_state[f"{session_key}_new_name"] = ""
+                st.session_state[f"{session_key}_new_val"] = 0.0
+                st.session_state[session_key] = param_list
+                st.rerun()
+            else:
+                st.warning("Please provide a parameter name.")
 
     # -------------------------------
     # Edit Configuration (kept intact)
