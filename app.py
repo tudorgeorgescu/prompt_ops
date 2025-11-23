@@ -202,8 +202,9 @@ if param_list:
             }
 
     st.divider()
+
     # Add new parameter controls
-    st.subheader("Add new parameter")
+    st.caption("Add new parameter")
     with cols[0]:
         new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold", label_visibility="hidden")
     with cols[1]:
