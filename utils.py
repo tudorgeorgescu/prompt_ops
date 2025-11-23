@@ -6,7 +6,7 @@ def safe_float(x, default=0.0):
         return default
 
 
-def safe_params(sd_params):
+def normalize_params(sd_params):
     """
     Process a list of parameter dictionaries, ensuring 'value' is a float.
     Each dict should have 'name' and 'value' keys.
