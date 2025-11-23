@@ -5,18 +5,26 @@ import json
 import os
 from datetime import datetime
 import time
-import re
+import# --- Helpers ---import re
+def safe_float(x, default=0.0):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return default
 
-# --- Configuration ---
-PROMPTS_FILE = 'prompts.json'
-INPUT_FILE = 'source_data.csv'
-SCHEMA_FILE = 'schema_config.json'
-OUTPUT_FILE = 'batch_results.csv'
+def normalize_params(sd_params):
+    """Ensure params are a list of dicts with name:str and value:float"""
+    out = []
+    if isinstance(sd_params, list):
+        for p in sd_params:
+            if isinstance(p, dict):
+                name = str(p.get("name", "")).strip()
+                value = safe_float(p.get("value", 0.0), 0.0)
+                out.append({"name": name, "value": value})
+    return out
 
-# --- 1. Data Management Functions ---
-
+# --- Data Management ---
 def load_data():
-    """Reads CSV data, Prompt JSON, and Schema Descriptions"""
     if os.path.exists(INPUT_FILE):
         df_input = pd.read_csv(INPUT_FILE)
     else:
@@ -44,10 +52,10 @@ def mock_llm_call(prompt_text, model_name="gpt-mock"):
     time.sleep(0.05)
     return f"[{model_name}]: Response to '{prompt_text[:15]}...'"
 
-# --- 2. Batch Logic ---
+# --- Batch Logic ---
 def run_batch_job(df_input, selected_prompts_list):
     results = []
-    total_ops = len(df_input) * len(selected_prompts_list)
+    total_ops = max(1, len(df_input) * len(selected_prompts_list))
     progress_bar = st.progress(0)
     step = 0
     
@@ -78,16 +86,13 @@ def run_batch_job(df_input, selected_prompts_list):
     df_results.to_csv(OUTPUT_FILE, index=False)
     return df_results, f"Success! Generated {len(df_results)} outputs."
 
-# --- 3. UI Setup ---
-
+# --- UI Setup ---
 st.set_page_config(layout="wide", page_title="Cloud Prompt Ops")
 st.title("⚡ Cloud Prompt A/B Tester")
 
 df_source, prompts_list, schema_dict = load_data()
 
-# ==========================
-# SIDEBAR
-# ==========================
+# Sidebar
 with st.sidebar:
     st.header("Project Context")
     st.info(f"Loaded {len(df_source)} rows from `{INPUT_FILE}`")
@@ -95,62 +100,42 @@ with st.sidebar:
     st.divider()
     with st.expander("📚 Available Data Parameters", expanded=False):
         st.markdown("Use these variables in your template:")
-        
         cols = df_source.columns.tolist()
         doc_data = [{"Variable": f"{{{c}}}", "Description": schema_dict.get(c, "-")} for c in cols]
-        
-        st.dataframe(
-            pd.DataFrame(doc_data), 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={
-                "Variable": st.column_config.TextColumn("Var", width="small"),
-                "Description": st.column_config.TextColumn("Desc", width="medium"),
-            }
-        )
+        st.dataframe(pd.DataFrame(doc_data), use_container_width=True, hide_index=True)
 
     st.divider()
     if os.path.exists(OUTPUT_FILE):
         with open(OUTPUT_FILE, "rb") as file:
             st.download_button("📥 Download Results", file, "batch_results.csv")
 
-# ==========================
-# MAIN TABS
-# ==========================
+# Tabs
 tab1, tab2 = st.tabs(["🧠 Insight Editor", "🚀 Batch Runner"])
 
 # --- TAB 1: INSIGHT EDITOR ---
 with tab1:
     st.subheader("Select Insight")
     options = [p['name'] for p in prompts_list] + ["+ Create New"]
-    
     selected_name = st.segmented_control("Insights", options, label_visibility="collapsed")
     selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
+    current_insight_id = selected_data['id'] if selected_data else "__new__"
 
-    # -------------------------------
-    # Insight Parameters (Dynamic UI)
-    # -------------------------------
-    if selected_data:
-        session_key = f"param_list_{selected_data.get('id', 'unknown')}"
-    else:
-        session_key = "param_list_new_insight"
+    # Detect selection changes and rehydrate params
+    if "__current_insight_id" not in st.session_state:
+        st.session_state["__current_insight_id"] = current_insight_id
 
+    if st.session_state["__current_insight_id"] != current_insight_id:
+        st.session_state["__current_insight_id"] = current_insight_id
+        new_key = f"param_list_{current_insight_id}" if selected_data else "param_list_new_insight"
+        st.session_state[new_key] = normalize_params(selected_data.get("params", [])) if selected_data else []
+
+    session_key = f"param_list_{current_insight_id}" if selected_data else "param_list_new_insight"
     if session_key not in st.session_state:
-        existing_params = []
-        if selected_data:
-            sd_params = selected_data.get("params", [])
-            if isinstance(sd_params, list):
-                existing_params = [
-                    {"name": (p.get("name") or "").strip(), "value": float(p.get("value", 0.0))}
-                    for p in sd_params if isinstance(p, dict)
-                ]
-        st.session_state[session_key] = existing_params
+        st.session_state[session_key] = normalize_params(selected_data.get("params", [])) if selected_data else []
 
     param_list = st.session_state.get(session_key, [])
-    if not isinstance(param_list, list):
-        param_list = []
-        st.session_state[session_key] = []
 
+    # Insight Parameters UI
     st.subheader("Insight Parameters")
     st.caption("Create numeric parameters for this insight. They are saved with the insight and can be used later.")
 
@@ -168,7 +153,7 @@ with tab1:
             with row_cols[0]:
                 st.text_input("Name", value=p.get("name", ""), key=f"{session_key}_name_{i}", label_visibility="collapsed")
             with row_cols[1]:
-                st.number_input("Value", value=float(p.get("value", 0.0)), key=f"{session_key}_val_{i}", step=1.0, label_visibility="collapsed")
+                st.number_input("Value", value=safe_float(p.get("value", 0.0)), key=f"{session_key}_val_{i}", step=1.0, label_visibility="collapsed")
             with row_cols[2]:
                 st.write("")  # spacer for alignment
                 if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
@@ -177,11 +162,12 @@ with tab1:
                     st.session_state[session_key] = updated
                     st.rerun()
 
+        # Sync edited values
         synced = []
         for i in range(len(param_list)):
             synced.append({
                 "name": st.session_state.get(f"{session_key}_name_{i}", "").strip(),
-                "value": float(st.session_state.get(f"{session_key}_val_{i}", 0.0)),
+                "value": safe_float(st.session_state.get(f"{session_key}_val_{i}", 0.0)),
             })
         st.session_state[session_key] = synced
         param_list = synced
@@ -192,7 +178,7 @@ with tab1:
     if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
         if new_name.strip():
             current = list(st.session_state[session_key])
-            current.append({"name": new_name.strip(), "value": float(new_val)})
+            current.append({"name": new_name.strip(), "value": safe_float(new_val)})
             st.session_state[session_key] = current
             st.session_state[f"{session_key}_new_name"] = ""
             st.session_state[f"{session_key}_new_val"] = 0.0
@@ -200,9 +186,7 @@ with tab1:
         else:
             st.warning("Please provide a parameter name.")
 
-    # -------------------------------
     # Edit Configuration
-    # -------------------------------
     st.subheader("Edit Configuration")
     with st.form("edit_form"):
         if selected_data:
@@ -229,7 +213,7 @@ with tab1:
         if st.form_submit_button("Save Insight"):
             current_params = st.session_state.get(session_key, [])
             current_params = [
-                {"name": p.get("name", "").strip(), "value": float(p.get("value", 0.0))}
+                {"name": p.get("name", "").strip(), "value": safe_float(p.get("value", 0.0))}
                 for p in current_params if p.get("name", "").strip()
             ]
             new_entry = {
@@ -247,6 +231,7 @@ with tab1:
                 st.session_state[f"param_list_{f_id}"] = current_params
                 if "param_list_new_insight" in st.session_state:
                     del st.session_state["param_list_new_insight"]
+                st.session_state["__current_insight_id"] = f_id
 
             save_prompts(prompts_list)
             st.success("Saved!")
@@ -271,3 +256,11 @@ with tab2:
                     st.dataframe(df_result.head(10), use_container_width=True)
                 else:
                     st.error(msg)
+
+
+# --- Configuration ---
+PROMPTS_FILE = 'prompts.json'
+INPUT_FILE = 'source_data.csv'
+SCHEMA_FILE = 'schema_config.json'
+OUTPUT_FILE = 'batch_results.csv'
+
