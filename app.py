@@ -199,7 +199,7 @@ with tab1:
     with cols[0]:
         new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold")
     with cols[1]:
-    new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
+        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
     with cols[2]:
         if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
             if new_name.strip():
