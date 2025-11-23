@@ -29,13 +29,12 @@ with tab1:
     if session_key not in st.session_state:
         raw_params = selected_data.get("params", []) if selected_data else []
         st.session_state[session_key] = normalize_params(raw_params)
-
-    # Normalize param_list before passing to UI
-    param_list = st.session_state.get(session_key, [])
-    if not isinstance(param_list, list):
-        param_list = normalize_params(param_list)
-        st.session_state[session_key] = param_list
-
+   
+    # Always normalize param_list before passing to UI
+    raw_params = st.session_state.get(session_key, [])
+    param_list = normalize_params(raw_params)
+    st.session_state[session_key] = param_list
+    
     render_parameters(session_key, param_list)
 
     st.subheader("Edit Configuration")
