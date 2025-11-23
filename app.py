@@ -167,7 +167,7 @@ with tab1:
 # Render existing parameters with editable fields
 if param_list:
     for i, p in enumerate(param_list):
-        cols = st.columns([0.5, 0.3, 0.2], vertical_alignment="center")  # NEW: vertical alignment
+        cols = st.columns([0.2, 0.5, 0.3], vertical_alignment="left") 
         with cols[0]:
             # Button aligned with inputs
             if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
