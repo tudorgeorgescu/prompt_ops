@@ -18,7 +18,7 @@ df_source, prompts_list, schema_dict = load_data()
 with st.sidebar:
     st.subheader("Select Insight")
     options = [p['name'] for p in prompts_list] + ["+ Create New"]
-    selected_name = st.segmented_control("Insights", options, label_visibility="collapsed")
+    selected_name = st.pills("Insights", options, label_visibility="collapsed")
     selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
     current_id = selected_data['id'] if selected_data else "__new__"
     session_key = f"param_list_{current_id}"
