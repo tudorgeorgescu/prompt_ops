@@ -201,8 +201,6 @@ if param_list:
                 "value": float(st.session_state.get(f"{session_key}_val_{i}", 0.0))
             }
 
-    st.divider()
-
     # Add new parameter controls
     st.caption("Add new parameter")
     with cols[0]:
@@ -220,6 +218,8 @@ if param_list:
                 st.rerun()
             else:
                 st.warning("Please provide a parameter name.")
+    
+    st.divider()
 
     # -------------------------------
     # Edit Configuration (kept intact)
