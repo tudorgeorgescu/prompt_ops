@@ -164,17 +164,12 @@ with tab1:
     )
 
    
+
 # Render existing parameters with editable fields
 if param_list:
     for i, p in enumerate(param_list):
-        cols = st.columns([0.2, 0.5, 0.3], vertical_alignment="center") 
+        cols = st.columns([0.5, 0.3, 0.2], vertical_alignment="center")  # NEW: vertical alignment
         with cols[0]:
-            # Button aligned with inputs
-            if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                param_list.pop(i)
-                st.session_state[session_key] = param_list
-                st.rerun()
-        with cols[1]:
             st.text_input(
                 "Name", 
                 value=p.get('name', ''), 
@@ -182,7 +177,7 @@ if param_list:
                 placeholder="e.g., weight_kpi",
                 label_visibility="collapsed"
             )
-        with cols[2]:
+        with cols[1]:
             st.number_input(
                 "Value", 
                 value=float(p.get('value', 0.0)), 
@@ -190,7 +185,13 @@ if param_list:
                 step=1.0,
                 label_visibility="collapsed"
             )
-       
+        with cols[2]:
+            # Button aligned with inputs
+            if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
+                param_list.pop(i)
+                st.session_state[session_key] = param_list
+                st.rerun()
+
 
 
         # Sync back edited values from session state to our list
@@ -202,6 +203,7 @@ if param_list:
 
     st.divider()
     # Add new parameter controls
+    st.subheader("Add new parameter")
     with cols[0]:
         if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
             if new_name.strip():
@@ -214,9 +216,9 @@ if param_list:
             else:
                 st.warning("Please provide a parameter name.")
     with cols[1]:
-        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold")
+        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold", label_visibility="invisible")
     with cols[2]:
-        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
+        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0, label_visibility="invisible")
 
     # -------------------------------
     # Edit Configuration (kept intact)
