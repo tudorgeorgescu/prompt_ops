@@ -25,11 +25,12 @@ with tab1:
     current_id = selected_data['id'] if selected_data else "__new__"
     session_key = f"param_list_{current_id}"
 
+    # Ensure session_key exists
     if session_key not in st.session_state:
-        # selected_data may be None if "+ Create New"
         raw_params = selected_data.get("params", []) if selected_data else []
         st.session_state[session_key] = normalize_params(raw_params)
 
+    # Normalize param_list before passing to UI
     param_list = st.session_state.get(session_key, [])
     if not isinstance(param_list, list):
         param_list = normalize_params(param_list)
