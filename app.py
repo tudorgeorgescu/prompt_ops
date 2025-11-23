@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -42,6 +41,10 @@ def load_data():
 def save_prompts(prompts_list):
     with open(PROMPTS_FILE, 'w') as f:
         json.dump(prompts_list, f, indent=2)
+
+def save_schema(schema_dict):
+    with open(SCHEMA_FILE, 'w') as f:
+        json.dump(schema_dict, f, indent=2)
 
 def mock_llm_call(prompt_text, model_name="gpt-mock"):
     time.sleep(0.05)
@@ -88,6 +91,11 @@ st.title("⚡ Cloud Prompt A/B Tester")
 
 df_source, prompts_list, schema_dict = load_data()
 
+# Ensure schema_dict has entries for known columns (optional — keeps UI consistent)
+for c in df_source.columns.tolist():
+    if c not in schema_dict:
+        schema_dict.setdefault(c, "")
+
 # ==========================
 # SIDEBAR
 # ==========================
@@ -98,26 +106,64 @@ with st.sidebar:
     # --- MOVED: Parameter Reference Pane ---
     st.divider()
     with st.expander("📚 Available Data Parameters", expanded=False):
-        st.markdown("Use these variables in your template:")
+        st.markdown("Use these variables in your template. You can edit descriptions inline, remove unused parameters, or add new ones.")
         
         cols = df_source.columns.tolist()
-        doc_data = []
-        for c in cols:
-            doc_data.append({
-                "Variable": f"{{{c}}}", 
-                "Description": schema_dict.get(c, "-")
-            })
-        
-        # Display as a dataframe (cleaner in sidebar than markdown list)
-        st.dataframe(
-            pd.DataFrame(doc_data), 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={
-                "Variable": st.column_config.TextColumn("Var", width="small"),
-                "Description": st.column_config.TextColumn("Desc", width="medium"),
-            }
-        )
+        # Show editable parameter rows with inline buttons
+        if cols:
+            for c in cols:
+                col_name, col_desc, col_actions = st.columns([2, 6, 2])
+                with col_name:
+                    # show variable name clearly
+                    st.write(f"**{c}**")
+                # description input keyed so Streamlit preserves values across reruns
+                desc_key = f"schema_desc_{c}"
+                current_desc = schema_dict.get(c, "")
+                # Pre-fill the session state default so text_input shows current value
+                if desc_key not in st.session_state:
+                    st.session_state[desc_key] = current_desc
+                with col_desc:
+                    new_desc = st.text_input("", value=st.session_state[desc_key], key=desc_key, placeholder="Add description...")
+                with col_actions:
+                    action_cols = st.columns([1,1])
+                    with action_cols[0]:
+                        if st.button("Update", key=f"update_{c}"):
+                            schema_dict[c] = new_desc
+                            save_schema(schema_dict)
+                            st.success("Updated")
+                            st.rerun()
+                    with action_cols[1]:
+                        if st.button("Remove", key=f"remove_{c}"):
+                            # Remove mapping if exists
+                            if c in schema_dict:
+                                del schema_dict[c]
+                            save_schema(schema_dict)
+                            st.success("Removed")
+                            st.rerun()
+        else:
+            st.write("_No columns found in the source CSV._")
+
+        st.divider()
+        # Inline Add Parameter row
+        new_name_key = "new_param_name"
+        new_desc_key = "new_param_desc"
+        add_name_col, add_desc_col, add_btn_col = st.columns([2,6,2])
+        with add_name_col:
+            new_name = st.text_input("New Parameter", key=new_name_key, placeholder="parameter_name")
+        with add_desc_col:
+            new_desc = st.text_input("Description", key=new_desc_key, placeholder="Description for parameter")
+        with add_btn_col:
+            if st.button("Add Parameter", key="add_param_btn", type="primary", disabled=(not st.session_state.get(new_name_key))):
+                nm = st.session_state.get(new_name_key)
+                ds = st.session_state.get(new_desc_key, "")
+                if nm:
+                    schema_dict[nm] = ds
+                    save_schema(schema_dict)
+                    st.success("Added")
+                    # clear inputs
+                    st.session_state[new_name_key] = ""
+                    st.session_state[new_desc_key] = ""
+                    st.rerun()
     # ---------------------------------------
 
     st.divider()
@@ -128,149 +174,62 @@ with st.sidebar:
 # ==========================
 # MAIN TABS
 # ==========================
-tab1, tab2 = st.tabs(["🧠 Insight Editor", "🚀 Batch Runner"])
+tab1, tab2 = st.tabs(["📝 Prompt Editor", "🚀 Batch Runner"])
 
-# --- TAB 1: INSIGHT EDITOR ---
+# --- TAB 1: PROMPT EDITOR ---
 with tab1:
-    st.subheader("Select Insight")
-    options = [p['name'] for p in prompts_list] + ["+ Create New"]
-    
-    # Using segmented control (requires Streamlit 1.31+)
-    selected_name = st.segmented_control(
-        "Insights", 
-        options, 
-        label_visibility="collapsed"
-    )
-    
-    selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
+        st.subheader("Select Prompt")
+        options = [p['name'] for p in prompts_list] + ["+ Create New"]
+        
+        # Using segmented control as requested (requires Streamlit 1.31+)
+        selected_name = st.segmented_control(
+            "Prompts", 
+            options, 
+            label_visibility="collapsed"
+        )
+        
+        selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-    # -------------------------------
-    # Insight Parameters (Dynamic UI)
-    # -------------------------------
-    # Session key is per insight to keep parameters while editing
-    if selected_data:
-        session_key = f"param_list_{selected_data['id']}"
-    else:
-        session_key = "param_list_new_insight"
-
-    if session_key not in st.session_state:
-        st.session_state[session_key] = (selected_data.get('params', []) if selected_data else [])
-
-    param_list = st.session_state[session_key]
-
-    st.subheader("Insight Parameters")
-    st.caption(
-        "Create numeric parameters for this insight. These are stored with the insight and can be used in your logic later."
-    )
-
-    # Render existing parameters with editable fields
-    if param_list:
-        for i, p in enumerate(param_list):
-            cols = st.columns([0.5, 0.3, 0.2])
-            with cols[0]:
-                st.text_input(
-                    "Name", 
-                    value=p.get('name', ''), 
-                    key=f"{session_key}_name_{i}",
-                    placeholder="e.g., weight_kpi"
-                )
-            with cols[1]:
-                st.number_input(
-                    "Value", 
-                    value=float(p.get('value', 0.0)), 
-                    key=f"{session_key}_val_{i}", 
-                    step=1.0
-                )
-            with cols[2]:
-                if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                    # Remove and re-sync session state
-                    param_list.pop(i)
-                    st.session_state[session_key] = param_list
-                    st.rerun()
-        # Sync back edited values from session state to our list
-        for i in range(len(param_list)):
-            param_list[i] = {
-                "name": st.session_state.get(f"{session_key}_name_{i}", ""),
-                "value": float(st.session_state.get(f"{session_key}_val_{i}", 0.0))
-            }
-
-    st.divider()
-    # Add new parameter controls
-    with cols[0]:
-        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold")
-    with cols[1]:
-        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0)
-    with cols[2]:
-        if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
-            if new_name.strip():
-                param_list.append({"name": new_name.strip(), "value": float(new_val)})
-                # Clear input fields after add
-                st.session_state[f"{session_key}_new_name"] = ""
-                st.session_state[f"{session_key}_new_val"] = 0.0
-                st.session_state[session_key] = param_list
-                st.rerun()
-            else:
-                st.warning("Please provide a parameter name.")
-
-    # -------------------------------
-    # Edit Configuration (kept intact)
-    # -------------------------------
-    st.subheader("Edit Configuration")
-    with st.form("edit_form"):
-        if selected_data:
-            f_id = st.text_input("ID", value=selected_data['id'], disabled=True)
-            f_name = st.text_input("Name", value=selected_data['name'])
-            f_active = st.checkbox("Active for Batch", value=selected_data.get('is_active', False))
-            f_template = st.text_area("Template", value=selected_data['template'], height=300)
-        else:
-            f_id = st.text_input("ID", value=f"prompt_{int(time.time())}")
-            f_name = st.text_input("Name", value="New Prompt")
-            f_active = st.checkbox("Active for Batch", value=True)
-            f_template = st.text_area("Template", placeholder="Analyze {customer_name}...", height=300)
-
-        # Validation Preview
-        if f_template:
-            st.caption("Preview of variables detected:")
-            vars_found = re.findall(r'\{(.*?)\}', f_template)
-            valid_vars = [v for v in vars_found if v in df_source.columns]
-            invalid_vars = [v for v in vars_found if v not in df_source.columns]
-            
-            if invalid_vars:
-                st.error(f"⚠️ Invalid variables: {invalid_vars}")
-            elif valid_vars:
-                st.success(f"✅ Valid variables: {valid_vars}")
-
-        if st.form_submit_button("Save Insight"):
-            # Pull current params from session state
-            current_params = st.session_state.get(session_key, [])
-            # Filter out empty names
-            current_params = [
-                {"name": p.get("name", "").strip(), "value": float(p.get("value", 0.0))}
-                for p in current_params if p.get("name", "").strip()
-            ]
-
-            new_entry = {
-                "id": f_id,
-                "name": f_name,
-                "template": f_template,
-                "is_active": f_active,
-                "params": current_params,  # <-- NEW: persist parameters per insight
-                "updated_at": datetime.now().isoformat()
-            }
-
+        st.subheader("Edit Configuration")
+        with st.form("edit_form"):
             if selected_data:
-                prompts_list[prompts_list.index(selected_data)] = new_entry
+                f_id = st.text_input("ID", value=selected_data['id'], disabled=True)
+                f_name = st.text_input("Name", value=selected_data['name'])
+                f_active = st.checkbox("Active for Batch", value=selected_data.get('is_active', False))
+                f_template = st.text_area("Template", value=selected_data['template'], height=300)
             else:
-                prompts_list.append(new_entry)
-                # Rebind session key for this newly saved insight (optional)
-                st.session_state[f"param_list_{f_id}"] = current_params
-                # Clean up the temporary "new insight" list
-                if "param_list_new_insight" in st.session_state:
-                    del st.session_state["param_list_new_insight"]
-            
-            save_prompts(prompts_list)
-            st.success("Saved!")
-            st.rerun()
+                f_id = st.text_input("ID", value=f"prompt_{int(time.time())}")
+                f_name = st.text_input("Name", value="New Prompt")
+                f_active = st.checkbox("Active for Batch", value=True)
+                f_template = st.text_area("Template", placeholder="Analyze {customer_name}...", height=300)
+
+            # Validation Preview
+            if f_template:
+                st.caption("Preview of variables detected:")
+                vars_found = re.findall(r'\{(.*?)\}', f_template)
+                valid_vars = [v for v in vars_found if v in df_source.columns]
+                invalid_vars = [v for v in vars_found if v not in df_source.columns]
+                
+                if invalid_vars:
+                    st.error(f"⚠️ Invalid variables: {invalid_vars}")
+                elif valid_vars:
+                    st.success(f"✅ Valid variables: {valid_vars}")
+
+            if st.form_submit_button("Save Prompt"):
+                new_entry = {
+                    "id": f_id, "name": f_name, 
+                    "template": f_template, 
+                    "is_active": f_active,
+                    "updated_at": datetime.now().isoformat()
+                }
+                if selected_data:
+                    prompts_list[prompts_list.index(selected_data)] = new_entry
+                else:
+                    prompts_list.append(new_entry)
+                
+                save_prompts(prompts_list)
+                st.success("Saved!")
+                st.rerun()
 
 # --- TAB 2: BATCH RUNNER ---
 with tab2:
