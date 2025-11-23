@@ -4,6 +4,10 @@
     "name": "Daily Customer Summary",
     "template": "Analyze the customer {customer_name}. \nHistory: {support_ticket_text}. \nPurchases: {recent_purchases}.",
     "is_active": true,
+    "params": [
+      {"name": "weight_kpi", "value": 1.2},
+      {"name": "threshold", "value": 0.65}
+    ],
     "updated_at": "2023-10-27 10:00:00"
   },
   {
@@ -11,6 +15,7 @@
     "name": "Polite Email Generator",
     "template": "Write a polite email to {customer_name} regarding their issue: {support_ticket_text}",
     "is_active": false,
+    "params": [],
     "updated_at": "2023-10-26 15:30:00"
   }
 ]
