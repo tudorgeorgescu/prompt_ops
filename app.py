@@ -144,79 +144,121 @@ with tab1:
     
     selected_data = next((p for p in prompts_list if p['name'] == selected_name), None)
 
-    # -------------------------------
-    # Insight Parameters (Dynamic UI)
-    # -------------------------------
-    # Session key is per insight to keep parameters while editing
-    if selected_data:
-        session_key = f"param_list_{selected_data['id']}"
-    else:
-        session_key = "param_list_new_insight"
-
-    if session_key not in st.session_state:
-        st.session_state[session_key] = (selected_data.get('params', []) if selected_data else [])
-
-    param_list = st.session_state[session_key]
-
-    st.subheader("Insight Parameters")
-    st.caption(
-        "Create numeric parameters for this insight. These are stored with the insight and can be used in your logic later."
-    )
-
-    # Render existing parameters with editable fields
-    if param_list:
-        for i, p in enumerate(param_list):
-            cols = st.columns([0.5, 0.3, 0.2], vertical_alignment="center")  # NEW: vertical alignment
-            with cols[0]:
-                st.text_input(
-                    "Name", 
-                    value=p.get('name', ''), 
-                    key=f"{session_key}_name_{i}",
-                    placeholder="e.g., weight_kpi",
-                    label_visibility="collapsed"
-                )
-            with cols[1]:
-                st.number_input(
-                    "Value", 
-                    value=float(p.get('value', 0.0)), 
-                    key=f"{session_key}_val_{i}", 
-                    step=1.0,
-                    label_visibility="collapsed"
-                )
-            with cols[2]:
-                # Button aligned with inputs
-                if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                    param_list.pop(i)
-                    st.session_state[session_key] = param_list
-                    st.rerun()
-
-
-        # Sync back edited values from session state to our list
-        for i in range(len(param_list)):
-            param_list[i] = {
-                "name": st.session_state.get(f"{session_key}_name_{i}", ""),
-                "value": float(st.session_state.get(f"{session_key}_val_{i}", 0.0))
-            }
-
-    # Add new parameter controls
-    st.caption("Add new parameter")
-    with cols[0]:
-        new_name = st.text_input("New parameter name", key=f"{session_key}_new_name", placeholder="e.g., threshold", label_visibility="hidden")
-    with cols[1]:
-        new_val = st.number_input("New parameter value", key=f"{session_key}_new_val", value=0.0, step=1.0, label_visibility="hidden")
-    with cols[2]:
-        if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
-            if new_name.strip():
-                param_list.append({"name": new_name.strip(), "value": float(new_val)})
-                # Clear input fields after add
-                st.session_state[f"{session_key}_new_name"] = ""
-                st.session_state[f"{session_key}_new_val"] = 0.0
-                st.session_state[session_key] = param_list
-                st.rerun()
-            else:
-                st.warning("Please provide a parameter name.")
     
-    st.divider()
+# -------------------------------
+# Insight Parameters (Dynamic UI)
+# -------------------------------
+# Stable session key resolution even when creating a new insight
+if selected_data:
+    session_key = f"param_list_{selected_data.get('id', 'unknown')}"
+else:
+    session_key = "param_list_new_insight"
+
+# Initialize session state safely
+if session_key not in st.session_state:
+    # If editing an existing insight, load its params; otherwise use empty list
+    existing_params = []
+    if selected_data and isinstance(selected_data.get("params", []), list):
+        existing_params = selected_data.get("params", [])
+    st.session_state[session_key] = existing_params
+
+param_list = st.session_state[session_key]
+# Ensure it's always a list
+if not isinstance(param_list, list):
+    param_list = []
+    st.session_state[session_key] = []
+
+st.subheader("Insight Parameters")
+st.caption(
+    "Create numeric parameters for this insight. These are stored with the insight and can be used in your logic later."
+)
+
+# Optional header row to mimic a table layout
+header_cols = st.columns([0.5, 0.3, 0.2])
+with header_cols[0]:
+    st.markdown("**Name**")
+with header_cols[1]:
+    st.markdown("**Value**")
+with header_cols[2]:
+    st.markdown("**Action**")
+
+# Render existing parameters with editable fields (safe when empty)
+if len(param_list) == 0:
+    # No parameters yet — show gentle empty state but do NOT error
+    st.info("No parameters defined yet. Use the section below to add one.")
+else:
+    # Use a stable index range so we can safely pop during iteration via rerun
+    for i in range(len(param_list)):
+        p = param_list[i]
+        row_cols = st.columns([0.5, 0.3, 0.2])
+        with row_cols[0]:
+            st.text_input(
+                "Name",
+                value=p.get("name", ""),
+                key=f"{session_key}_name_{i}",
+                placeholder="e.g., threshold",
+                label_visibility="collapsed",
+            )
+        with row_cols[1]:
+            st.number_input(
+                "Value",
+                value=float(p.get("value", 0.0)) if str(p.get("value", "")).strip() != "" else 0.0,
+                key=f"{session_key}_val_{i}",
+                step=1.0,
+                label_visibility="collapsed",
+            )
+        with row_cols[2]:
+            # Add a small spacer so the button visually aligns with inputs across themes
+            st.write("")  # keeps alignment consistent without relying on vertical_alignment
+            if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
+                # Remove and re-sync session state
+                updated = list(st.session_state[session_key])
+                if i < len(updated):
+                    updated.pop(i)
+                st.session_state[session_key] = updated
+                st.rerun()
+
+    # Sync edited values back to param_list
+    synced = []
+    for i in range(len(param_list)):
+        synced.append({
+            "name": st.session_state.get(f"{session_key}_name_{i}", "").strip(),
+            "value": float(st.session_state.get(f"{session_key}_val_{i}", 0.0)),
+        })
+    st.session_state[session_key] = synced
+    param_list = synced  # local reference
+
+st.divider()
+
+# Add new parameter controls (always visible)
+new_name = st.text_input(
+    "New parameter name",
+    key=f"{session_key}_new_name",
+    placeholder="e.g., weight_kpi",
+)
+new_val = st.number_input(
+    "New parameter value",
+    key=f"{session_key}_new_val",
+    value=0.0,
+    step=1.0,
+)
+
+add_cols = st.columns([0.2, 0.8])
+with add_cols[0]:
+    if st.button("➕ Add parameter", key=f"{session_key}_add_btn"):
+        if new_name.strip():
+            current = list(st.session_state[session_key])  # copy
+            current.append({"name": new_name.strip(), "value": float(new_val)})
+            st.session_state[session_key] = current
+            # Clear input fields after add
+            st.session_state[f"{session_key}_new_name"] = ""
+            st.session_state[f"{session_key}_new_val"] = 0.0
+            st.rerun()
+        else:
+            st.warning("Please provide a parameter name.")
+with add_cols[1]:
+    st.caption("Tip: Choose concise names. You can add as many parameters as needed.")
+
 
     # -------------------------------
     # Edit Configuration (kept intact)
