@@ -163,35 +163,32 @@ with tab1:
         "Create numeric parameters for this insight. These are stored with the insight and can be used in your logic later."
     )
 
-   
-
-# Render existing parameters with editable fields
-if param_list:
-    for i, p in enumerate(param_list):
-        cols = st.columns([0.5, 0.3, 0.2], vertical_alignment="center")  # NEW: vertical alignment
-        with cols[0]:
-            st.text_input(
-                "Name", 
-                value=p.get('name', ''), 
-                key=f"{session_key}_name_{i}",
-                placeholder="e.g., weight_kpi",
-                label_visibility="collapsed"
-            )
-        with cols[1]:
-            st.number_input(
-                "Value", 
-                value=float(p.get('value', 0.0)), 
-                key=f"{session_key}_val_{i}", 
-                step=1.0,
-                label_visibility="collapsed"
-            )
-        with cols[2]:
-            # Button aligned with inputs
-            if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                param_list.pop(i)
-                st.session_state[session_key] = param_list
-                st.rerun()
-
+    # Render existing parameters with editable fields
+    if param_list:
+        for i, p in enumerate(param_list):
+            cols = st.columns([0.5, 0.3, 0.2], vertical_alignment="center")  # NEW: vertical alignment
+            with cols[0]:
+                st.text_input(
+                    "Name", 
+                    value=p.get('name', ''), 
+                    key=f"{session_key}_name_{i}",
+                    placeholder="e.g., weight_kpi",
+                    label_visibility="collapsed"
+                )
+            with cols[1]:
+                st.number_input(
+                    "Value", 
+                    value=float(p.get('value', 0.0)), 
+                    key=f"{session_key}_val_{i}", 
+                    step=1.0,
+                    label_visibility="collapsed"
+                )
+            with cols[2]:
+                # Button aligned with inputs
+                if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
+                    param_list.pop(i)
+                    st.session_state[session_key] = param_list
+                    st.rerun()
 
 
         # Sync back edited values from session state to our list
