@@ -1,5 +1,10 @@
+import time
+import streamlit as st
 import pandas as pd
-from datetime import datetime="gpt-mock"):from datetime import datetime
+from datetime import datetime
+
+
+def mock_llm_call(prompt_text, model_name="gpt-mock"):
     time.sleep(0.05)
     return f"[{model_name}]: Response to '{prompt_text[:15]}...'"
 
@@ -34,6 +39,5 @@ def run_batch_job(df_input, selected_prompts_list, output_file='batch_results.cs
     df_results = pd.DataFrame(results)
     df_results.to_csv(output_file, index=False)
     return df_results, f"Success! Generated {len(df_results)} outputs."
-import time
-import streamlit as st
+
 
