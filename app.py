@@ -182,11 +182,13 @@ with tab1:
                     step=1.0
                 )
             with cols[2]:
+                # Add vertical alignment by inserting a blank line
+                st.write("")  # This pushes the button down to align with inputs
                 if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                    # Remove and re-sync session state
                     param_list.pop(i)
                     st.session_state[session_key] = param_list
                     st.rerun()
+
         # Sync back edited values from session state to our list
         for i in range(len(param_list)):
             param_list[i] = {
