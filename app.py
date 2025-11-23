@@ -30,12 +30,10 @@ with tab1:
         raw_params = selected_data.get("params", []) if selected_data else []
         st.session_state[session_key] = normalize_params(raw_params)
 
-    param_list = st.session_state[session_key]
-
+    param_list = st.session_state.get(session_key, [])
     if not isinstance(param_list, list):
-        # Fix bad types (e.g., None, dict, str)
         param_list = normalize_params(param_list)
-    st.session_state[session_key] = param_list
+        st.session_state[session_key] = param_list
 
     render_parameters(session_key, param_list)
 
