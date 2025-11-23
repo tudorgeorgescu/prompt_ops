@@ -7,14 +7,19 @@ def safe_float(x, default=0.0):
 
 
 def normalize_params(sd_params):
-    """
-    Process a list of parameter dictionaries, ensuring 'value' is a float.
-    Each dict should have 'name' and 'value' keys.
-    """
     out = []
     if isinstance(sd_params, list):
-        for p in sd_params:
-            if isinstance(p, dict):
-                name = str(p.get("name", "")).strip()
-                value = safe_float(p.get("value", 0.0), 0.0)
+        source = sd_params
+    elif isinstance(sd_params, dict):
+        # Convert dict {name: value} to list of dicts
+        source = [{"name": k, "value": v} for k, v in sd_params.items()]
+    else:
+        source = []
+
+    for p in source:
+        if isinstance(p, dict):
+            name = str(p.get("name", "")).strip()
+            value = safe_float(p.get("value", 0.0), 0.0)
+            if name:
                 out.append({"name": name, "value": value})
+    return out
