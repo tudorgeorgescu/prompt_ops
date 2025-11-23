@@ -1,15 +1,21 @@
 import streamlit as st
 from utils import safe_float
 
-def render_parameters(session_key, param header_cols = st.columns([0.5, 0.3, 0.2])def render_parameters(session_key, param_list):
+
+def render_parameters(session_key, param_list):
+    st.subheader("Insight Parameters")
+    st.caption("Create numeric parameters for this insight.")
+
+    header_cols = st.columns([0.5, 0.3, 0.2])
     with header_cols[0]: st.markdown("**Name**")
     with header_cols[1]: st.markdown("**Value**")
     with header_cols[2]: st.markdown("**Action**")
 
-    if len(param_list) == 0:
+    if not param_list:
         st.info("No parameters defined yet.")
     else:
-        for i, p in enumerate(param_list):
+        for i in range(len(param_list)):
+            p = param_list[i]
             row_cols = st.columns([0.5, 0.3, 0.2])
             with row_cols[0]:
                 st.text_input("Name", value=p.get("name", ""), key=f"{session_key}_name_{i}", label_visibility="collapsed")
@@ -18,9 +24,17 @@ def render_parameters(session_key, param header_cols = st.columns([0.5, 0.3, 0.2
             with row_cols[2]:
                 st.write("")
                 if st.button("🗑️ Remove", key=f"{session_key}_del_{i}"):
-                    param_list.pop(i)
-                    st.session_state[session_key] = param_list
+                    # Instead of modifying while iterating, mark for removal
+                    st.session_state[f"{session_key}_remove"] = i
                     st.rerun()
+
+    # Handle removal after loop
+    if f"{session_key}_remove" in st.session_state:
+        idx = st.session_state.pop(f"{session_key}_remove")
+        if 0 <= idx < len(param_list):
+            param_list.pop(idx)
+            st.session_state[session_key] = param_list
+            st.rerun()
 
     # Sync edits
     synced = []
@@ -42,6 +56,3 @@ def render_parameters(session_key, param header_cols = st.columns([0.5, 0.3, 0.2
             st.rerun()
         else:
             st.warning("Please provide a parameter name.")
-    st.subheader("Insight Parameters")
-    st.caption("Create numeric parameters for this insight.")
-
